@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-HK">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#fff8e8" />
+    <meta name="description" content="用粵語認識水果、顏色和味道。" />
+    <title>水果形容小達人</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="game.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳到遊戲內容</a>
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="水果形容小達人首頁">
+        <span class="brand-mark" aria-hidden="true">🍊</span>
+        <span>水果形容小達人</span>
+      </a>
+      <div class="access-tools" aria-label="輔助功能">
+        <button class="tool-button" id="read-help" type="button" aria-label="朗讀提示" title="朗讀提示">🔊 <span>聽提示</span></button>
+        <button class="tool-button" id="text-size" type="button" aria-label="切換較大文字" title="切換文字大小">A<span class="small-a">A</span> <span>文字</span></button>
+        <button class="tool-button" id="sound-toggle" type="button" aria-pressed="true" aria-label="關閉語音朗讀" title="開關語音朗讀">語音開</button>
+      </div>
+    </header>
+
+    <main id="main" class="page-shell">
+      <section class="game-frame" aria-label="水果形容小達人遊戲">
+        <div class="fruit-stamp stamp-one" aria-hidden="true">🍓</div>
+        <div class="fruit-stamp stamp-two" aria-hidden="true">🍇</div>
+        <div id="game" aria-live="polite" aria-atomic="true"></div>
+      </section>
+      <p class="support-note">可以用觸控、鍵盤或語音作答。每關四題，不限時。</p>
+    </main>
+    <footer class="page-footer">
+      <span>水果小檔案：士多啤梨・香蕉・橙・蘋果・奇異果・提子</span>
+      <span>⏱ 約 3–5 分鐘</span>
+    </footer>
+  </body>
+</html>
