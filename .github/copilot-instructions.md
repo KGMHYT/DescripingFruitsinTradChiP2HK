@@ -13,4 +13,5 @@
 - Keep learner-facing text in Traditional Chinese (Hong Kong); request speech in Cantonese (Hong Kong, `zh-HK`).
 - Keep the app dependency-free and usable as a static page.
 - Preserve keyboard access, visible focus, large touch controls, learner-controlled pacing, and alternatives to speech input.
+- Keep countdown activities optional, pauseable, and paired with an untimed route; only speak when a Hong Kong Cantonese voice is available.
 - Describe accessibility decisions as design goals, not formal WCAG or Education Bureau certification.
