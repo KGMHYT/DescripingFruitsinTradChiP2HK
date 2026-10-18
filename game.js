@@ -5,7 +5,14 @@ const fruits = [
   { name: "蘋果", emoji: "🍎", color: "紅色", taste: "清甜", shape: "圓形", pair: ["爽脆", "清甜"] },
   { name: "奇異果", emoji: "🥝", color: "啡色外皮、綠色果肉", taste: "酸甜", shape: "橢圓形", pair: ["酸甜", "多汁"] },
   { name: "提子", emoji: "🍇", color: "紫色", taste: "香甜", shape: "一粒粒", pair: ["紫", "甜"] },
+  { name: "西瓜", emoji: "🍉", color: "綠色外皮、紅色果肉", taste: "清甜", shape: "圓形", pair: ["果肉紅", "多汁"] },
+  { name: "菠蘿", emoji: "🍍", color: "啡黃色", taste: "酸甜", shape: "橢圓形", pair: ["香氣濃", "酸甜"] },
+  { name: "芒果", emoji: "🥭", color: "黃色", taste: "香甜", shape: "橢圓形", pair: ["果香濃", "香甜"] },
+  { name: "車厘子", emoji: "🍒", color: "深紅色", taste: "鮮甜", shape: "細細粒", pair: ["細細粒", "鮮甜"] },
+  { name: "梨", emoji: "🍐", color: "綠色或黃色", taste: "清甜", shape: "梨形", pair: ["水分多", "清甜"] },
+  { name: "藍莓", emoji: "🫐", color: "深藍色", taste: "酸甜", shape: "細細粒", pair: ["藍紫色", "酸甜"] },
 ];
+const coreFruits = fruits.slice(0, 6);
 
 const levels = [
   { id: 1, title: "水果認一認", detail: "看圖找水果，熱身一下", skill: "認讀水果名稱" },
@@ -36,13 +43,21 @@ function shuffle(items) {
 }
 
 function speak(text) {
-  if (!speechEnabled || !("speechSynthesis" in window)) return;
+  if (!speechEnabled) return;
+  const notice = document.querySelector("#speech-notice");
+  if (!("speechSynthesis" in window)) {
+    notice.hidden = false;
+    notice.textContent = "此瀏覽器未提供語音朗讀；你可以閱讀螢幕文字作答。";
+    return;
+  }
   window.speechSynthesis.cancel();
   const cantoneseVoice = window.speechSynthesis.getVoices().find((voice) => /^zh[-_]hk(?:$|[-_])/i.test(voice.lang));
-  const notice = document.querySelector("#speech-notice");
   if (!cantoneseVoice) {
     notice.hidden = false;
     notice.textContent = "此裝置未找到香港粵語聲線；你可以閱讀螢幕文字作答。";
+    window.speechSynthesis.addEventListener("voiceschanged", () => {
+      if (speechEnabled && window.speechSynthesis.getVoices().some((voice) => /^zh[-_]hk(?:$|[-_])/i.test(voice.lang))) speak(text);
+    }, { once: true });
     return;
   }
   notice.hidden = true;
@@ -79,7 +94,7 @@ function homeScreen() {
 }
 
 function buildQuestions(levelId) {
-  const picked = shuffle(fruits).slice(0, 4);
+  const picked = shuffle(levelId >= 5 ? fruits : coreFruits).slice(0, 4);
   if (levelId === 1) return picked.map((fruit) => ({ fruit, prompt: `邊個係${fruit.name}？`, correct: fruit.name }));
   if (levelId === 2) return picked.map((fruit) => {
     const property = Math.random() > 0.45 ? "color" : "taste";
@@ -92,6 +107,16 @@ function buildQuestions(levelId) {
     prompt: `用「又……又……」形容${fruit.name}，選一句合適的句子。`,
     correct: `${fruit.name}又${fruit.pair[0]}又${fruit.pair[1]}。`,
   }));
+  if (levelId === 5) return picked.map((fruit) => {
+    const property = Math.random() > 0.5 ? "color" : "taste";
+    return {
+      fruit,
+      prompt: `邊種水果通常係「${fruit[property]}」？`,
+      correct: fruit.name,
+      property,
+      mystery: true,
+    };
+  });
   return picked.map((fruit) => ({
     fruit,
     prompt: `我又${fruit.pair[0]}又${fruit.pair[1]}，你估我係邊種水果？`,
@@ -101,14 +126,18 @@ function buildQuestions(levelId) {
 }
 
 function answerOptions(question) {
-  if (currentLevel === 1) return shuffle([question.fruit, ...shuffle(fruits.filter((fruit) => fruit.name !== question.fruit.name)).slice(0, 2)]);
+  if (currentLevel === 1) return shuffle([question.fruit, ...shuffle(coreFruits.filter((fruit) => fruit.name !== question.fruit.name)).slice(0, 2)]);
   if (currentLevel === 4) {
-    const distractors = shuffle(fruits.filter((fruit) => fruit !== question.fruit).map((fruit) => `${fruit.name}又${fruit.pair[0]}又${fruit.pair[1]}。`)).slice(0, 2);
+    const distractors = shuffle(coreFruits.filter((fruit) => fruit !== question.fruit).map((fruit) => `${fruit.name}又${fruit.pair[0]}又${fruit.pair[1]}。`)).slice(0, 2);
     return shuffle([question.correct, ...distractors]);
   }
-  if (currentLevel >= 5) return shuffle([question.correct, ...shuffle(fruits.filter((fruit) => fruit !== question.fruit).map((fruit) => fruit.name)).slice(0, 2)]);
+  if (currentLevel === 5) {
+    const distractors = shuffle(fruits.filter((fruit) => fruit !== question.fruit && fruit[question.property] !== question.fruit[question.property]).map((fruit) => fruit.name)).slice(0, 2);
+    return shuffle([question.correct, ...distractors]);
+  }
+  if (currentLevel === 6) return shuffle([question.correct, ...shuffle(fruits.filter((fruit) => fruit !== question.fruit).map((fruit) => fruit.name)).slice(0, 2)]);
   const pool = currentLevel === 2
-    ? [...new Set(fruits.map((fruit) => fruit[question.property]))]
+    ? [...new Set(coreFruits.map((fruit) => fruit[question.property]))]
     : [question.fruit.color, question.fruit.taste, question.fruit.shape];
   const distractors = shuffle(pool.filter((option) => option !== question.correct)).slice(0, 2);
   return shuffle([question.correct, ...distractors]);
@@ -190,7 +219,7 @@ function expireTimer() {
   answerLocked = true;
   timeExpired = true;
   recognition?.abort();
-  game.querySelectorAll(".answer-button, .sentence-builder select, #check-sentence, #voice-input, #timer-toggle").forEach((control) => { control.disabled = true; });
+  game.querySelectorAll(".answer-button, .option-audio, .sentence-builder select, #check-sentence, #voice-input, #timer-toggle").forEach((control) => { control.disabled = true; });
   setFeedback(`時間到！你已答對 ${score} 題。`, false);
   game.querySelector("#hint").textContent = "你可以看看成績，亦可選不限時再挑戰。";
   const resultButton = document.createElement("button");
@@ -209,6 +238,12 @@ function renderQuestion() {
   const question = questions[questionIndex];
   const level = levels[currentLevel - 1];
   const options = answerOptions(question);
+  const showFruitPicture = [2, 3, 4].includes(currentLevel);
+  const optionMarkup = currentLevel === 3 ? renderSentenceBuilder(question) : `<div class="answers" role="group" aria-label="選擇答案">${options.map((option) => {
+    const label = currentLevel === 1 ? option.name : option;
+    const emoji = currentLevel === 1 ? `<span class="answer-emoji" aria-hidden="true">${option.emoji}</span>` : "";
+    return `<div class="answer-choice"><button class="answer-button" type="button" data-answer="${label}">${emoji}<span>${label}</span></button><button class="option-audio" type="button" data-speak="${label}" aria-label="朗讀選項：${label}" title="朗讀選項">🔊</button></div>`;
+  }).join("")}</div>`;
   const timerPanel = currentLevel === 6 ? `<div class="timer-panel">
     <div class="timer-readout"><span>剩餘時間</span><span id="countdown" role="timer" aria-live="off" aria-label="${timeLimitSeconds ? `剩餘時間 ${Math.floor(remainingSeconds / 60)} 分 ${remainingSeconds % 60} 秒` : "不限時"}">${timeLimitSeconds ? formatTime(remainingSeconds) : "不限時"}</span></div>
     ${timeLimitSeconds ? `<button class="timer-toggle" id="timer-toggle" type="button" aria-pressed="false">暫停</button>` : ""}
@@ -224,18 +259,18 @@ function renderQuestion() {
         <span class="progress-label">第 ${currentLevel} 關：${level.title}　・　${questionIndex + 1} / ${questions.length}</span>
         <div class="game-status"><div class="progress-track" role="progressbar" aria-label="答題進度" aria-valuemin="0" aria-valuemax="${questions.length}" aria-valuenow="${questionIndex}"><div class="progress-fill" style="width:${questionIndex / questions.length * 100}%"></div></div>${timerPanel}</div>
       </div>
-      <div class="prompt-box"><div class="prompt-row"><h2 id="question-title" tabindex="-1">${question.prompt}</h2><button class="listen-button" type="button" aria-label="重聽題目" title="重聽題目">🔊</button></div></div>
+      <div class="prompt-box"><div class="prompt-row">${showFruitPicture ? `<span class="prompt-fruit" aria-hidden="true">${question.fruit.emoji}</span>` : ""}<h2 id="question-title" tabindex="-1">${question.prompt}</h2><button class="listen-button" type="button" aria-label="重聽題目" title="重聽題目">🔊</button></div></div>
+      <div class="feedback-row"><p class="feedback" id="feedback" role="status" aria-live="polite"></p><button class="option-audio feedback-audio" id="feedback-audio" type="button" aria-label="重聽提示" title="重聽提示" hidden>🔊</button></div>
       ${question.mystery ? `<div class="mystery-fruit" aria-hidden="true"><span>？</span><span>神秘水果</span></div>` : ""}
-      ${currentLevel === 3 ? renderSentenceBuilder(question) : `<div class="answers" role="group" aria-label="選擇答案">${options.map((option) => {
-        const label = currentLevel === 1 ? option.name : option;
-        const emoji = currentLevel === 1 ? `<span class="answer-emoji" aria-hidden="true">${option.emoji}</span>` : "";
-        return `<button class="answer-button" type="button" data-answer="${label}">${emoji}<span>${label}</span></button>`;
-      }).join("")}</div>`}
-      <p class="feedback" id="feedback" role="status" aria-live="polite"></p>
+      ${optionMarkup}
       <p class="hint-text" id="hint">${hint}</p>
       <div class="button-row"><button class="secondary-button" id="back-home" type="button">← 返回選關</button></div>
     </section>`;
   game.querySelector(".listen-button").addEventListener("click", () => speak(question.prompt));
+  game.querySelectorAll(".option-audio").forEach((button) => button.addEventListener("click", () => {
+    const feedback = game.querySelector("#feedback");
+    speak(button.id === "feedback-audio" ? feedback.textContent : button.dataset.speak);
+  }));
   game.querySelector("#back-home").addEventListener("click", homeScreen);
   game.querySelector("#timer-toggle")?.addEventListener("click", toggleTimer);
   game.querySelectorAll("[data-answer]").forEach((button) => button.addEventListener("click", () => checkAnswer(button.dataset.answer, question.correct)));
@@ -245,18 +280,18 @@ function renderQuestion() {
 }
 
 function renderSentenceBuilder(question) {
-  const colorOptions = [...new Set(fruits.map((fruit) => fruit.color))];
-  const tasteOptions = [...new Set(fruits.map((fruit) => fruit.taste))];
+  const colorOptions = [...new Set(coreFruits.map((fruit) => fruit.color))];
+  const tasteOptions = [...new Set(coreFruits.map((fruit) => fruit.taste))];
   return `<div class="sentence-builder">
-    <label class="select-label" for="fruit-choice">水果
-      <select id="fruit-choice"><option value="">選水果</option>${fruits.map((fruit) => `<option value="${fruit.name}">${fruit.emoji} ${fruit.name}</option>`).join("")}</select>
-    </label>
-    <label class="select-label" for="color-choice">顏色
+    <div class="select-group"><div class="select-label-row"><label class="select-label" for="fruit-choice">水果</label><button class="option-audio" type="button" data-speak="${coreFruits.map((fruit) => fruit.name).join("、")}" aria-label="朗讀水果選項">🔊</button></div>
+      <select id="fruit-choice"><option value="">選水果</option>${coreFruits.map((fruit) => `<option value="${fruit.name}">${fruit.emoji} ${fruit.name}</option>`).join("")}</select>
+    </div>
+    <div class="select-group"><div class="select-label-row"><label class="select-label" for="color-choice">顏色</label><button class="option-audio" type="button" data-speak="${colorOptions.join("、")}" aria-label="朗讀顏色選項">🔊</button></div>
       <select id="color-choice"><option value="">選顏色</option>${colorOptions.map((color) => `<option value="${color}">${color}</option>`).join("")}</select>
-    </label>
-    <label class="select-label" for="taste-choice">味道
+    </div>
+    <div class="select-group"><div class="select-label-row"><label class="select-label" for="taste-choice">味道</label><button class="option-audio" type="button" data-speak="${tasteOptions.join("、")}" aria-label="朗讀味道選項">🔊</button></div>
       <select id="taste-choice"><option value="">選味道</option>${tasteOptions.map((taste) => `<option value="${taste}">${taste}</option>`).join("")}</select>
-    </label>
+    </div>
   </div>
   <p class="sentence-preview" id="sentence-preview" aria-live="polite">我想介紹＿＿。它是＿＿色，味道＿＿。</p>
   <div class="button-row">
@@ -327,29 +362,43 @@ function setFeedback(message, correct) {
   const feedback = game.querySelector("#feedback");
   feedback.textContent = message;
   feedback.className = `feedback ${correct ? "good" : "try-again"}`;
+  game.querySelector("#feedback-audio").hidden = correct;
 }
 
 function checkAnswer(answer, correctAnswer) {
   if (answerLocked) return;
   if (answer !== correctAnswer) {
-    setFeedback("差一點點！再想一想，或者重聽題目。", false);
-    speak("差一點點，再試一次。");
+    setFeedback("再試一次！讀一讀上面的特徵，再揀另一個答案。", false);
+    speak("再試一次，讀一讀上面的特徵，再揀另一個答案。");
     return;
   }
   answerLocked = true;
   score += 1;
-  setFeedback("答對了！你觀察得真仔細。", true);
-  speak("答對了，你觀察得真仔細。");
+  const answerFruit = questions[questionIndex].fruit;
+  setFeedback(currentLevel >= 5 ? `答對了！是${answerFruit.name}。` : "答對了！你觀察得真仔細。", true);
+  speak(currentLevel >= 5 ? `答對了！是${answerFruit.name}。` : "答對了，你觀察得真仔細。");
   game.querySelectorAll("button.answer-button").forEach((button) => { button.disabled = true; });
+  game.querySelectorAll("button.option-audio").forEach((button) => { button.disabled = true; });
   game.querySelectorAll(".sentence-builder select, #check-sentence, #voice-input").forEach((control) => { control.disabled = true; });
   recognition?.abort();
+  let feedbackAnchor = game.querySelector(".feedback-row");
+  if (currentLevel >= 5) {
+    const mysteryCover = game.querySelector(".mystery-fruit");
+    if (mysteryCover) mysteryCover.hidden = true;
+    const reveal = document.createElement("div");
+    reveal.className = "answer-reveal";
+    reveal.setAttribute("aria-live", "polite");
+    reveal.innerHTML = `<span class="answer-reveal-emoji" aria-hidden="true">${answerFruit.emoji}</span><strong>神秘水果是${answerFruit.name}！</strong>`;
+    feedbackAnchor.insertAdjacentElement("afterend", reveal);
+    feedbackAnchor = reveal;
+  }
   game.querySelector("#hint").textContent = "準備好後，按「下一題」繼續。";
   const nextButton = document.createElement("button");
   nextButton.className = "primary-button";
   nextButton.type = "button";
   nextButton.textContent = questionIndex === questions.length - 1 ? "看看成績 →" : "下一題 →";
   nextButton.addEventListener("click", () => { questionIndex += 1; renderQuestion(); });
-  game.querySelector("#feedback").insertAdjacentElement("afterend", nextButton);
+  feedbackAnchor.insertAdjacentElement("afterend", nextButton);
   nextButton.focus();
 }
 
