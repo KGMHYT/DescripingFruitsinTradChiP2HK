@@ -12,7 +12,7 @@ const levels = [
   { id: 2, title: "特徵配一配", detail: "找出水果的顏色和味道", skill: "描述顏色和味道" },
   { id: 3, title: "小小介紹員", detail: "選詞組句，介紹心水水果", skill: "用完整句子介紹" },
   { id: 4, title: "又……又……句子隊", detail: "用兩個特徵說好一句話", skill: "運用「又……又……」句式" },
-  { id: 5, title: "神秘水果猜猜看", detail: "聽特徵，猜猜藏起來的水果", skill: "根據特徵推想水果" },
+  { id: 5, title: "神秘水果猜猜看", detail: "根據特徵，猜猜藏起來的水果", skill: "根據特徵推想水果" },
   { id: 6, title: "倒數水果挑戰", detail: "限時猜水果，也可選擇不限時", skill: "在自選節奏下綜合運用特徵" },
 ];
 
@@ -377,7 +377,7 @@ function renderResult() {
   speak(timeExpired ? `時間到，你答對四題中的${score}題。` : `關卡完成，你答對四題中的${score}題。`);
 }
 
-document.querySelector("#read-help").addEventListener("click", () => speak("選擇一個關卡。每關有四題，不限時間。你可以重聽題目，答錯也可以再試。"));
+document.querySelector("#read-help").addEventListener("click", () => speak("選擇一個關卡。每關有四題。第六關可選擇倒數或不限時，亦可暫停。你可以重聽題目，答錯也可以再試。"));
 document.querySelector("#text-size").addEventListener("click", () => {
   const enlarged = document.body.classList.toggle("large-text");
   document.querySelector("#text-size").setAttribute("aria-label", enlarged ? "切換標準文字" : "切換較大文字");
